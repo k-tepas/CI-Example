@@ -1,0 +1,44 @@
+name: Word Count Check
+
+on:
+  push:
+    paths:
+      - 'submissions/**'
+  pull_request:
+    paths:
+      - 'submissions/**'
+
+jobs:
+  word-count:
+    runs-on: ubuntu-latest
+    name: Check Word Count (minimum 500 words)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install python-docx
+        run: pip install python-docx
+
+      - name: Get changed .docx files
+        id: changed-files
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'submissions/*.docx' 'submissions/**/*.docx' 2>/dev/null | tr '\n' ' ')
+          echo "files=$CHANGED" >> $GITHUB_OUTPUT
+          echo "Changed .docx files: $CHANGED"
+
+      - name: Check word counts
+        run: |
+          FILES="${{ steps.changed-files.outputs.files }}"
+          if [ -z "$FILES" ]; then
+            echo "No .docx files changed in this push."
+            exit 0
+          fi
+          python check_word_count.py $FILES
