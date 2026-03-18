@@ -37,8 +37,20 @@ jobs:
       - name: Check word counts
         run: |
           FILES="${{ steps.changed-files.outputs.files }}"
+
           if [ -z "$FILES" ]; then
             echo "No .docx files changed in this push."
             exit 0
           fi
-          python check_word_count.py $FILES
+
+          echo "Processing files safely..."
+
+          printf '%s\n' $FILES | while IFS= read -r file; do
+            if [[ -z "$file" || "$file" == *"~$"* ]]; then
+              echo "Skipping temp or empty file: $file"
+              continue
+            fi
+
+            echo "Checking: $file"
+            python check_word_count.py "$file"
+          done
